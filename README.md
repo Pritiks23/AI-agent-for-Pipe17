@@ -6,7 +6,7 @@ Welcome to my **Pipe17 Gemini AI Agent Demo**! Using AI agent for operational ta
 
 ---
 
-## 🔹 Live Demo
+##  Live Demo
 
 You can view and interact with the demo here:
 
