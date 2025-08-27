@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+
+<head>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pipe17 Ops Agent — Gemini + Tools (Single‑File Demo)</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #0f1620;
+      --text: #f5f7ff;
+      --muted: #a9b4c0;
+      --accent: #7aa2ff;
+      --glow: 0 0 18px rgba(122,162,255,0.55);
+    }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 80% -10%, rgba(60,90,200,.15), transparent),
+                  radial-gradient(1000px 600px at -20% 110%, rgba(60,200,160,.12), transparent),
+                  var(--bg);
+      color: var(--text);
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 18px 48px; }
+
+    .title {
+      font-size: clamp(28px, 3vw, 42px);
+      line-height: 1.05; font-weight: 800; letter-spacing: .2px;
+      color: var(--text);
+      text-shadow: 0 0 8px rgba(255,255,255,.12), var(--glow);
+      margin: 4px 0 8px;
+    }
+    .subtitle { color: var(--muted); margin: 0 0 18px; font-size: 15px }
+
+    .card { background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+            border: 1px solid rgba(255,255,255,.08); border-radius: 18px; box-shadow: 0 8px 40px rgba(0,0,0,.3);
+            backdrop-filter: blur(6px);
+    }
+
+    .row { display: grid; grid-template-columns: 1.1fr .9fr; gap: 16px; }
+    @media (max-width: 980px){ .row { grid-template-columns: 1fr; } }
+
+    .panel { padding: 16px; }
+    .panel h2 { margin: 0 0 10px; font-size: 18px; letter-spacing: .2px }
+    .panel p, .panel li { color: var(--muted); font-size: 14px }
+
+    /* Controls */
+    .controls { display:grid; grid-template-columns: 1fr auto auto; gap:8px; align-items:center; margin: 10px 0 }
+    .controls input, .controls button, .controls select {
+      background: #0c131c; color: var(--text); border: 1px solid rgba(255,255,255,.08);
+      padding: 10px 12px; border-radius: 12px; font-size: 14px;
+    }
+    .controls input { width: 100%; }
+    .controls button { cursor: pointer; }
+    .controls button.primary { border-color: rgba(122,162,255,.5); box-shadow: var(--glow); }
+
+    /* Chat */
+    .chat { height: 520px; overflow: auto; padding: 14px; display:flex; flex-direction:column; gap:10px }
+    .msg { display:flex; gap:10px; }
+    .msg .bubble { max-width: 78%; padding: 12px 14px; border-radius: 14px; line-height: 1.25; font-size: 14px; white-space: pre-wrap; }
+    .msg.user .bubble { background:#1a2330; border:1px solid rgba(255,255,255,.08) }
+    .msg.bot  .bubble { background:#0f1926; border:1px solid rgba(122,162,255,.35); box-shadow: var(--glow) }
+    .msg.tool .bubble { background:#101820; border:1px dashed rgba(140,220,255,.35) }
+
+    .tiny { font-size: 12px; color: var(--muted); }
+    code { color:#cfe1ff }
+
+    .footer-note { text-align:center; color: var(--muted); font-size: 12px; margin-top: 16px }
+    .glow { color: var(--text); text-shadow: 0 0 12px rgba(255,255,255,.18), 0 0 24px rgba(122,162,255,.6); }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">Pipe17 Ops Agent — <span class="glow">Gemini</span> Function‑Calling Demo</div>
+    <p class="subtitle">Single‑file project you can deploy on GitHub Pages. Paste a Gemini API key (web key with referrer restriction) and chat with an agent that can query mock Pipe17 data via tools (function calls) — orders, inventory, and ticketing.</p>
+
+    <div class="row">
+      <!-- LEFT: Chat -->
+      <div class="card panel">
+        <h2>Interactive Demo</h2>
+        <div class="tiny">Tip: Try “What’s the status of order <code>PO-20017</code>?”, “Recommend restock for low inventory”, or “Create a support ticket for the late order”.</div>
+
+        <div class="controls">
+          <input id="apiKey" placeholder="Paste your Gemini API key (from AI Studio; restrict by referrer)" />
+          <select id="model">
+            <option>gemini-1.5-flash</option>
+            <option>gemini-1.5-pro</option>
+          </select>
+          <button id="saveKey" class="primary">Save Key</button>
+        </div>
+
+        <div id="chat" class="chat card"></div>
+
+        <div class="controls">
+          <input id="userInput" placeholder="Ask about orders, inventory, or create a ticket…" />
+          <button id="send" class="primary">Send</button>
+          <button id="sample">Sample</button>
+        </div>
+      </div>
+
+      <!-- RIGHT: How it works -->
+      <div class="card panel">
+        <h2>How this Agent Works</h2>
+        <ul>
+          <li><b>Goal:</b> Simulate a Pipe17 ops copilot that can check orders & inventory and open tickets.</li>
+          <li><b>Model:</b> Google Gemini (<code>1.5‑flash</code> by default) called from the browser via the Web SDK.</li>
+          <li><b>Tools:</b> We define functions with JSON schemas. Gemini decides when to call them.</li>
+          <li><b>Loop:</b> The app executes tool calls, returns results to Gemini, and streams the final answer.</li>
+          <li><b>Data:</b> Mock datasets are embedded below (so the whole thing is one file).</li>
+          <li><b>Security:</b> Use an AI Studio <i>web</i> API key restricted to your GitHub Pages domain referrer.</li>
+        </ul>
+
+        <h2>Deploy on GitHub Pages</h2>
+        <ol>
+          <li>Create a new repo → add this <code>index.html</code>.</li>
+          <li>Settings → Pages → Deploy from <b>main</b> / <b>root</b>.</li>
+          <li>In <a href="https://aistudio.google.com/" target="_blank">AI Studio</a>, create an API key → <b>Restrict</b> to your Pages URL (e.g., <code>https://&lt;user&gt;.github.io/&lt;repo&gt;/</code>).</li>
+          <li>Open your Pages URL → paste the key → Save → start chatting.</li>
+        </ol>
+        <p class="tiny">Optional: Store the key in <code>localStorage</code> (this UI does) or pass via <code>?key=YOUR_KEY</code> in the URL during a private demo.</p>
+      </div>
+    </div>
+
+    <p class="footer-note">© 2025 — Single‑file demo for interviews. No server needed. Built with ❤️ and the <span class="glow">@google/generative‑ai</span> Web SDK.</p>
+  </div>
+
+  <script type="module">
+    // --- Imports (Web SDK via ESM CDN) ---
+    import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+
+    // --- Mock Pipe17 data (kept tiny for demo) ---
+    const ORDERS = [
+      { id: "PO-20017", customer: "R. Zhao", items: [{ sku:"HAT-RED", qty:1 }], eta: "2025-08-28", status: "in_transit", carrier:"UPS", tracking:"1Z999AA10123456784" },
+      { id: "PO-20018", customer: "L. Nguyen", items: [{ sku:"TSHIRT-BLK-M", qty:2 }], eta: "2025-08-29", status: "label_created", carrier:"USPS", tracking:"9400 1000 0000 0000 0000 00" },
+      { id: "PO-20019", customer: "A. Patel", items: [{ sku:"MUG-WHT", qty:1 }, { sku:"HAT-RED", qty:1 }], eta: "2025-08-27", status: "delivered", delivered_at: "2025-08-27" },
+    ];
+
+    const INVENTORY = [
+      { sku: "HAT-RED", name: "Classic Red Cap", on_hand: 3, reorder_point: 5, lead_days: 7 },
+      { sku: "TSHIRT-BLK-M", name: "Black Tee — M", on_hand: 42, reorder_point: 20, lead_days: 6 },
+      { sku: "MUG-WHT", name: "Ceramic Mug — White", on_hand: 2, reorder_point: 8, lead_days: 10 },
+    ];
+
+    let TICKETS = [];
+
+    // --- Tool implementations (executed in-browser) ---
+    const toolsImpl = {
+      list_open_orders: async () => {
+        const open = ORDERS.filter(o => o.status !== 'delivered');
+        return { count: open.length, orders: open };
+      },
+      get_order_status: async ({ order_id }) => {
+        const found = ORDERS.find(o => o.id === order_id);
+        if (!found) return { error: `Order ${order_id} not found` };
+        return found;
+      },
+      lookup_sku: async ({ sku }) => {
+        const item = INVENTORY.find(i => i.sku === sku);
+        if (!item) return { error: `SKU ${sku} not found` };
+        return item;
+      },
+      restock_recommendations: async () => {
+        const recs = INVENTORY.filter(i => i.on_hand <= i.reorder_point)
+          .map(i => ({ sku: i.sku, name: i.name, on_hand: i.on_hand, reorder_point: i.reorder_point, suggested_qty: Math.max(i.reorder_point * 2 - i.on_hand, 1) }));
+        return { recommendations: recs };
+      },
+      create_support_ticket: async ({ order_id, issue }) => {
+        const id = `TCK-${(Math.random()*1e6|0).toString(36).toUpperCase()}`;
+        const ticket = { id, order_id, issue, created_at: new Date().toISOString() };
+        TICKETS.push(ticket);
+        return ticket;
+      },
+    };
+
+    // --- Tool schemas for Gemini function calling ---
+    const functionDeclarations = [
+      {
+        name: "list_open_orders",
+        description: "Return undelivered orders with ETAs and tracking.",
+        parameters: { type: "OBJECT", properties: {}, required: [] }
+      },
+      {
+        name: "get_order_status",
+        description: "Get the full status of a specific order by ID.",
+        parameters: { type: "OBJECT", properties: { order_id: { type: "STRING" } }, required: ["order_id"] }
+      },
+      {
+        name: "lookup_sku",
+        description: "Look up a SKU's current inventory and replenishment rules.",
+        parameters: { type: "OBJECT", properties: { sku: { type: "STRING" } }, required: ["sku"] }
+      },
+      {
+        name: "restock_recommendations",
+        description: "Suggest what to reorder based on on_hand vs reorder_point.",
+        parameters: { type: "OBJECT", properties: {}, required: [] }
+      },
+      {
+        name: "create_support_ticket",
+        description: "Open a support ticket for an order.",
+        parameters: { type: "OBJECT", properties: { order_id: { type: "STRING" }, issue: { type: "STRING" } }, required: ["order_id","issue"] }
+      }
+    ];
+
+    // --- Minimal chat UI helpers ---
+    const chatEl = document.getElementById('chat');
+    const inputEl = document.getElementById('userInput');
+    const sendBtn = document.getElementById('send');
+    const sampleBtn = document.getElementById('sample');
+    const apiKeyEl = document.getElementById('apiKey');
+    const saveKeyBtn = document.getElementById('saveKey');
+    const modelSel = document.getElementById('model');
+
+    const scroll = () => chatEl.scrollTop = chatEl.scrollHeight;
+    const addMsg = (role, text) => {
+      const row = document.createElement('div');
+      row.className = `msg ${role}`;
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = text;
+      row.appendChild(bubble);
+      chatEl.appendChild(row);
+      scroll();
+    };
+
+    // Load key from URL (?key=...) or localStorage
+    const urlKey = new URLSearchParams(location.search).get('key');
+    const storedKey = localStorage.getItem('gemini_web_key');
+    if (urlKey) apiKeyEl.value = urlKey; else if (storedKey) apiKeyEl.value = storedKey;
+    saveKeyBtn.onclick = () => { localStorage.setItem('gemini_web_key', apiKeyEl.value.trim()); addMsg('bot', '🔑 API key saved locally for this browser.'); };
+
+    // Conversation state for function-calling loop
+    let contents = [
+      { role: 'user', parts: [{ text: `You are a helpful Pipe17 operations copilot.\nUse tools when needed.\nKeep answers crisp, cite order IDs & SKUs explicitly, and show bullet points for actions.\nToday is ${new Date().toISOString().slice(0,10)}.` }] }
+    ];
+
+    function toolCallToPart(call) {
+      return { functionCall: { name: call.name, args: call.args } };
+    }
+    function toolResponsePart(name, response) {
+      return { functionResponse: { name, response: { name, content: response } } };
+    }
+
+    async function runAgentTurn(userText){
+      const key = apiKeyEl.value.trim();
+      if (!key) { addMsg('bot','⚠️ Paste a Gemini API key first.'); return; }
+      const genAI = new GoogleGenerativeAI(key);
+      const model = genAI.getGenerativeModel({ model: modelSel.value });
+
+      contents.push({ role: 'user', parts: [{ text: userText }] });
+
+      // Up to 4 tool iterations to reach a final answer
+      const MAX_STEPS = 4;
+      let finalText = null;
+      for (let step = 0; step < MAX_STEPS; step++){
+        const result = await model.generateContent({
+          contents,
+          tools: [{ functionDeclarations }],
+        });
+        const resp = result.response;
+        const calls = resp.functionCalls();
+        if (calls && calls.length){
+          // Show tool calls in the UI
+          for (const call of calls){ addMsg('tool', `🔧 ${call.name}(${JSON.stringify(call.args)})`); }
+          // Execute each call and append function responses
+          for (const call of calls){
+            const impl = toolsImpl[call.name];
+            let toolOut;
+            try { toolOut = await impl(call.args || {}); }
+            catch (e){ toolOut = { error: String(e) } }
+            contents.push({ role: 'model', parts: [toolCallToPart(call)] });
+            contents.push({ role: 'tool',  parts: [toolResponsePart(call.name, toolOut)] });
+          }
+          continue; // let the model observe tool outputs
+        }
+        // No function calls: finalize
+        finalText = resp.text();
+        contents.push({ role: 'model', parts: [{ text: finalText }] });
+        break;
+      }
+      addMsg('bot', finalText || 'Done.');
+    }
+
+    // Seed greeting
+    addMsg('bot', 'Hi! I’m your Pipe17 Ops Agent. Ask me about order status, low inventory, or to open a support ticket.');
+
+    // UI events
+    sendBtn.onclick = async () => {
+      const t = inputEl.value.trim(); if(!t) return; inputEl.value = '';
+      addMsg('user', t);
+      await runAgentTurn(t);
+    };
+    inputEl.addEventListener('keydown', e => { if(e.key==='Enter'){ sendBtn.click(); }});
+
+    sampleBtn.onclick = async () => {
+      const samples = [
+        "What’s the status of order PO-20017?",
+        "Which SKUs are below reorder point? Give reorder suggestions.",
+        "Open a support ticket for PO-20018 — customer reports delayed delivery.",
+        "For SKU MUG-WHT, how many should we reorder?",
+      ];
+      const q = samples[Math.floor(Math.random()*samples.length)];
+      addMsg('user', q);
+      await runAgentTurn(q);
+    };
+  </script>
+</body>
+</html>
