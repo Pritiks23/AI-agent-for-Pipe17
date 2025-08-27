@@ -2,7 +2,7 @@
 #  <img width="1430" height="773" alt="Screen Shot 2025-08-27 at 4 12 20 PM" src="https://github.com/user-attachments/assets/d2e8b96b-fd3f-42c9-94c3-adfe627126c1" />
 Pipe17 Gemini AI Agent Demo
 
-Welcome to the **Pipe17 Gemini AI Agent Demo**! This is a simple, visually engaging web interface to showcase how **Google Gemini** can act as an AI agent for operational tasks, like checking order status or suggesting restocks. Perfect for demos and interviews.  
+Welcome to my **Pipe17 Gemini AI Agent Demo**! Using AI agent for operational tasks, like checking order status or suggesting restocks. Perfect for demos and interviews.  
 
 ---
 
@@ -55,7 +55,7 @@ You can view and interact with the demo here:
 
 ---
 
-## ⚠Notes
+## Notes
 
 - Responses are **AI-generated** using Google Gemini.  
 - Accuracy depends on the model’s knowledge; it may **hallucinate** answers.  
@@ -63,7 +63,7 @@ You can view and interact with the demo here:
 
 ---
 
-## 📄 Credits
+##  Credits
 
 - Built with **HTML, CSS, and JavaScript**  
 - Powered by **Google Gemini API**  
